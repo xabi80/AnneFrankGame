@@ -1261,7 +1261,7 @@
                 }
 				if (elapsed - lastSpeedIncreaseTime >= 10) {
 					gameState.level3State.enemies.forEach(enemy => {
-						enemy.speed = Math.min(enemy.speed + 0.03, 0.35);
+						enemy.speed = Math.min(enemy.speed + 0.03, 0.24);
 						enemy.glowLevel += 1;
 					});
 
