@@ -1,0 +1,1951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anne Frank's Journey - Interactive Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background-color: #1a1a1a;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            background-color: #2a2a2a;
+            cursor: pointer;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+
+        .game-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a1a1a;
+        }
+
+        #instructions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: #f0e6d2;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 250px;
+            font-size: 14px;
+            line-height: 1.6;
+            border: 2px solid #d4af37;
+        }
+
+        #instructions h3 {
+            margin-bottom: 10px;
+            color: #d4af37;
+            font-size: 16px;
+        }
+
+        .challenge-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(15, 15, 15, 0.98);
+            border: 4px solid #d4af37;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 850px;
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.6);
+            display: none;
+            z-index: 1000;
+        }
+
+        .challenge-modal h2 {
+            color: #d4af37;
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .challenge-modal p {
+            color: #f0e6d2;
+            margin-bottom: 20px;
+            font-size: 18px;
+            line-height: 1.8;
+            text-align: center;
+        }
+
+        .challenge-modal input, .challenge-modal select {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            border: 2px solid #d4af37;
+            background-color: #2a2a2a;
+            color: #f0e6d2;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-family: 'Georgia', serif;
+        }
+
+        .challenge-modal button {
+            width: 48%;
+            padding: 14px;
+            font-size: 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Georgia', serif;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .challenge-modal button:first-of-type {
+            background-color: #4CAF50;
+            color: white;
+            margin-right: 4%;
+        }
+
+        .challenge-modal button:last-of-type {
+            background-color: #d4af37;
+            color: #1a1a1a;
+        }
+
+        .challenge-modal button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .challenge-result {
+            color: #ff6b6b;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+            min-height: 40px;
+            padding: 10px;
+        }
+
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            margin: 30px 0;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .memory-card {
+            aspect-ratio: 1;
+            background-color: #3d3226;
+            border: 4px solid #d4af37;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            transition: all 0.3s;
+            min-height: 150px;
+        }
+
+        .memory-card:hover {
+            background-color: #4a3a2a;
+            transform: scale(1.05);
+        }
+
+        .memory-card.flipped {
+            background-color: #6b5b4f;
+            border-color: #4CAF50;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #dateChallenge {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .date-option {
+            background-color: #3d3226;
+            border: 2px solid #d4af37;
+            color: #f0e6d2;
+            padding: 15px 25px;
+            margin: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Georgia', serif;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .date-option:hover {
+            background-color: #4a3a2a;
+            transform: scale(1.05);
+        }
+
+        .date-option.selected {
+            background-color: #d4af37;
+            color: #1a1a1a;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="1200" height="800"></canvas>
+        <div id="instructions">
+            <h3>Controls</h3>
+            <p><strong>Arrow Keys:</strong> Move<br>
+            <strong>Space/Click:</strong> Interact<br>
+            <strong>Mouse:</strong> Click objects</p>
+        </div>
+
+        <!-- Challenge Modal -->
+        <div id="challengeModal" class="challenge-modal">
+            <h2 id="challengeTitle">Challenge</h2>
+            <div id="challengeContent"></div>
+            <div class="challenge-result" id="challengeResult"></div>
+            <div id="challengeButtons">
+                <button onclick="checkChallengeAnswer()">Submit Answer</button>
+                <button onclick="closeChallenge()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game Configuration
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game State
+        let currentLevel = 0;
+        let gameState = {
+            inventory: [],
+            itemsFound: 0,
+            totalItems: 7,
+            showingText: false,
+            textLines: [],
+            currentTextIndex: 0,
+            player: {
+                x: 100,
+                y: 500,
+                width: 40,
+                height: 60,
+                speed: 4,
+                direction: 'right',
+                crouching: false
+            },
+            keys: {},
+            level2State: {
+                viewMode: 'room',
+                itemsCollected: {
+                    diary: false,
+                    schoolBooks: false,
+                    handkerchiefs: false,
+                    curlers: false,
+                    clothes1: false,
+                    clothes2: false
+                },
+                challengeSolved: {
+                    closet: false,
+                    underBed: false,
+                    drawer: false
+                },
+                clickableAreas: [],
+                hotspots: []
+            },
+            level3State: {
+                enemies: [],
+                playerCaught: false,
+                hidingSpots: [],
+                isHiding: false
+            },
+            level4State: {
+                currentRoom: 'kitchen',
+                bookcaseRevealed: false
+            },
+            currentChallenge: null,
+            memoryGame: {
+                cards: [],
+                flipped: [],
+                matched: [],
+                firstCard: null,
+                secondCard: null
+            }
+        };
+
+        // Challenge Definitions
+        const challenges = {
+            underBed: {
+                title: "Anne's Diary",
+                type: "multiple_choice",
+                question: "What did Anne name her diary?",
+                content: `<div id="dateChallenge">
+                    <div class="date-option" onclick="selectDateOption(this, 'Kitty')">Kitty</div>
+                    <div class="date-option" onclick="selectDateOption(this, 'Diary')">Diary</div>
+                    <div class="date-option" onclick="selectDateOption(this, 'Anne')">Anne</div>
+                    <div class="date-option" onclick="selectDateOption(this, 'My Journey')">My Journey</div>
+                </div>`,
+                answers: ["Kitty"],
+                items: ['diary', 'schoolBooks', 'handkerchiefs', 'curlers'],
+                itemNames: ['Diary', 'School Books', 'Handkerchiefs', 'Hair Curlers']
+            },
+            closet: {
+                title: "Going Into Hiding",
+                type: "multiple_choice",
+                question: "Why did Anne and her family go into hiding?",
+                content: `<div id="dateChallenge">
+                    <div class="date-option" onclick="selectDateOption(this, 'playing')">Because they were playing hide and seek</div>
+                    <div class="date-option" onclick="selectDateOption(this, 'nazis')">To escape the Nazis</div>
+                    <div class="date-option" onclick="selectDateOption(this, 'home')">They didn't have a home</div>
+                    <div class="date-option" onclick="selectDateOption(this, 'depression')">Depression</div>
+                </div>`,
+                answers: ["nazis", "to escape the nazis", "escape the nazis"],
+                items: ['clothes1', 'clothes2'],
+                itemNames: ['Winter Coat', 'Extra Jacket']
+            },
+            drawer: {
+                title: "Anne's Writing Tools",
+                type: "memory",
+                question: "Match the pairs of items that Anne used for her diary writing. Remember their positions!",
+                content: `<div class="memory-grid" id="memoryGrid"></div>
+                         <p style="font-size: 16px; margin-top: 20px; margin-bottom: 10px; font-weight: bold; color: #d4af37;">Click cards to flip them and find matching pairs.</p>`,
+                memoryItems: ['📓', '📓', '🖋️', '🖋️', '📖', '📖', '✉️', '✉️'],
+                items: ['pen'],
+                itemNames: ['Fountain Pen'],
+                customCheck: true
+            },
+            bookcase: {
+                title: "Unlock the Secret Entrance",
+                type: "unscramble",
+                question: "Unscramble this word to reveal the hidden entrance:",
+                scrambledWord: "KOAOCESB",
+                content: `<div style="text-align: center; margin: 30px 0;">
+                    <div style="font-size: 48px; font-weight: bold; color: #d4af37; letter-spacing: 10px; margin-bottom: 30px;">KOAOCESB</div>
+                    <input type="text" id="unscrambleInput" placeholder="Type the unscrambled word here..."
+                           style="width: 400px; padding: 15px; font-size: 20px; text-align: center; text-transform: uppercase;">
+                </div>`,
+                answers: ["BOOKCASE", "bookcase"],
+                customCheck: false
+            }
+        };
+
+        let selectedDateOption = null;
+
+        window.selectDateOption = function(element, value) {
+            // Remove previous selection
+            document.querySelectorAll('.date-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            // Add selection to clicked option
+            element.classList.add('selected');
+            selectedDateOption = value;
+        };
+
+        // Image Loading
+        const images = {
+            anneRoom: null,
+            underBed: null,
+            closet: null,
+            drawer: null,
+            street: null,
+            door: null,
+            office: null,
+            anneCharacter: null
+        };
+
+        let imagesLoaded = 0;
+        const totalImages = 8;
+
+        // Level Definitions
+        const levels = [
+            {
+                name: "Introduction",
+                type: "story",
+                execute: showIntroStory
+            },
+            {
+                name: "Collect Items",
+                type: "exploration",
+                execute: runLevel2
+            },
+            {
+                name: "Avoid Enemies",
+                type: "stealth",
+                execute: runLevel3
+            },
+            {
+                name: "Secret Annex",
+                type: "puzzle",
+                execute: runLevel4
+            }
+        ];
+
+        // Initialize the game
+        function init() {
+            setupEventListeners();
+            loadGameImages();
+        }
+
+        function setupEventListeners() {
+            document.addEventListener('keydown', (e) => {
+                gameState.keys[e.key] = true;
+
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    handleSpacePress();
+                }
+
+                // Handle grid movement for PAC-MAN level (Level 3)
+                if (currentLevel === 2 && !gameState.player.moving) {
+                    handleGridMovement(e.key);
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                gameState.keys[e.key] = false;
+            });
+
+            canvas.addEventListener('click', (e) => {
+                handleCanvasClick(e);
+            });
+        }
+
+        function loadGameImages() {
+            const imageFiles = {
+                anneRoom: 'IMG_0483.jpeg',
+                underBed: 'EE675BDD64EC4A389A90DE3A6189B3FD.png',
+                closet: '935F76920FC542BEB1646031F367036A.png',
+                drawer: 'DD76E4E1D0DE4900BA953F19568522C8.png',
+                street: '159C26FA65FE461AB9877D96C256B281.png',
+                door: 'F33954162B794AB7B6FD2FA69F9465EE.png',
+                office: 'CECC9956D67A45548FDC08ADFC17B717.png',
+                anneCharacter: 'D088D2E8C7464E1CB59598CB4D88A587.png'
+            };
+
+            Object.entries(imageFiles).forEach(([key, filename]) => {
+                const img = new Image();
+                img.onload = () => {
+                    images[key] = img;
+                    imagesLoaded++;
+                    console.log(`Loaded ${filename} (${imagesLoaded}/${totalImages})`);
+                    checkAllImagesLoaded();
+                };
+                img.onerror = () => {
+                    console.error(`Failed to load ${filename}`);
+                    imagesLoaded++;
+                    checkAllImagesLoaded();
+                };
+                // Try loading from current directory
+                img.src = filename;
+                console.log(`Loading ${filename}...`);
+            });
+        }
+
+        function checkAllImagesLoaded() {
+            if (imagesLoaded >= totalImages) {
+                console.log('All images loaded, starting game');
+                startGame();
+            }
+        }
+
+        function startGame() {
+            levels[currentLevel].execute();
+        }
+
+        // ============================================
+        // CHALLENGE SYSTEM
+        // ============================================
+        function showChallenge(challengeKey) {
+            const challenge = challenges[challengeKey];
+            gameState.currentChallenge = challengeKey;
+
+            document.getElementById('challengeTitle').textContent = challenge.title;
+
+            const content = document.getElementById('challengeContent');
+            content.innerHTML = '<p>' + challenge.question + '</p>' + challenge.content;
+
+            document.getElementById('challengeResult').textContent = '';
+            document.getElementById('challengeModal').style.display = 'block';
+
+            // Initialize memory game if needed
+            if (challenge.type === 'memory') {
+                initMemoryGame(challenge.memoryItems);
+            }
+
+            // Focus input if it exists
+            setTimeout(() => {
+                const input = document.getElementById('riddleInput');
+                if (input) input.focus();
+            }, 100);
+        }
+
+        function initMemoryGame(items) {
+            const grid = document.getElementById('memoryGrid');
+            if (!grid) return;
+
+            // Shuffle items
+            const shuffled = [...items].sort(() => Math.random() - 0.5);
+
+            gameState.memoryGame = {
+                cards: shuffled,
+                flipped: [],
+                matched: [],
+                firstCard: null,
+                secondCard: null
+            };
+
+            grid.innerHTML = '';
+            shuffled.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'memory-card';
+                card.dataset.index = index;
+                card.dataset.value = item;
+                card.textContent = '?';
+                card.onclick = () => flipMemoryCard(index);
+                grid.appendChild(card);
+            });
+        }
+
+        function flipMemoryCard(index) {
+            const mem = gameState.memoryGame;
+            const cards = document.querySelectorAll('.memory-card');
+            const card = cards[index];
+
+            // Prevent flipping if already flipped or matched
+            if (mem.flipped.includes(index) || mem.matched.includes(index)) return;
+
+            // Prevent flipping more than 2 cards
+            if (mem.flipped.length >= 2) return;
+
+            // Flip the card
+            card.textContent = mem.cards[index];
+            card.classList.add('flipped');
+            mem.flipped.push(index);
+
+            if (mem.flipped.length === 2) {
+                const [first, second] = mem.flipped;
+                const firstValue = mem.cards[first];
+                const secondValue = mem.cards[second];
+
+                if (firstValue === secondValue) {
+                    // Match found
+                    mem.matched.push(first, second);
+                    mem.flipped = [];
+
+                    // Check if all matched
+                    if (mem.matched.length === mem.cards.length) {
+                        setTimeout(() => {
+                            document.getElementById('challengeResult').style.color = '#4CAF50';
+                            document.getElementById('challengeResult').textContent = '✓ Perfect! All pairs matched!';
+                            setTimeout(() => {
+                                collectChallengeItems(gameState.currentChallenge);
+                                closeChallenge();
+                            }, 1500);
+                        }, 500);
+                    }
+                } else {
+                    // No match - flip back after delay
+                    setTimeout(() => {
+                        mem.flipped.forEach(idx => {
+                            if (!mem.matched.includes(idx)) {
+                                cards[idx].textContent = '?';
+                                cards[idx].classList.remove('flipped');
+                            }
+                        });
+                        mem.flipped = [];
+                    }, 1000);
+                }
+            }
+        }
+
+        function checkChallengeAnswer() {
+            const challenge = challenges[gameState.currentChallenge];
+            const resultDiv = document.getElementById('challengeResult');
+
+            // Handle custom check (memory game)
+            if (challenge.customCheck) {
+                return; // Memory game handles its own checking
+            }
+
+            let answer = '';
+
+            if (challenge.type === 'multiple_choice') {
+                answer = selectedDateOption || '';
+            } else if (challenge.type === 'riddle') {
+                const input = document.getElementById('riddleInput');
+                answer = input ? input.value.toLowerCase().trim() : '';
+            } else if (challenge.type === 'unscramble') {
+                const input = document.getElementById('unscrambleInput');
+                answer = input ? input.value.trim() : '';
+            }
+
+            if (challenge.answers.some(a => a.toLowerCase() === answer.toLowerCase())) {
+                resultDiv.style.color = '#4CAF50';
+
+                // Special handling for bookcase challenge
+                if (gameState.currentChallenge === 'bookcase') {
+                    resultDiv.textContent = '✓ Correct! The bookcase is moving...';
+                    setTimeout(() => {
+                        gameState.level4State.bookcaseRevealed = true;
+                        closeChallenge();
+                    }, 1500);
+                } else {
+                    resultDiv.textContent = '✓ Correct! Collecting items...';
+                    setTimeout(() => {
+                        collectChallengeItems(gameState.currentChallenge);
+                        closeChallenge();
+                    }, 1500);
+                }
+            } else {
+                resultDiv.style.color = '#ff6b6b';
+                resultDiv.textContent = '✗ Not quite right. Try again!';
+            }
+        }
+
+        function collectChallengeItems(challengeKey) {
+            const challenge = challenges[challengeKey];
+            gameState.level2State.challengeSolved[challengeKey] = true;
+
+            challenge.items.forEach((item, index) => {
+                gameState.level2State.itemsCollected[item] = true;
+                gameState.inventory.push(challenge.itemNames[index]);
+                gameState.itemsFound++;
+            });
+
+            // Reset selections
+            selectedDateOption = null;
+        }
+
+        function closeChallenge() {
+            document.getElementById('challengeModal').style.display = 'none';
+            gameState.currentChallenge = null;
+            selectedDateOption = null;
+        }
+
+        window.checkChallengeAnswer = checkChallengeAnswer;
+        window.closeChallenge = closeChallenge;
+
+        // ============================================
+        // LEVEL 1: INTRODUCTION STORY
+        // ============================================
+        function showIntroStory() {
+            const storyText = [
+                "Amsterdam, July 5, 1942",
+                "",
+                "On the night of July 5, 1942, when a postman",
+                "delivers an official summons for a member of",
+                "the Frank family, Margot takes a peek at the",
+                "letter. She assumes it's for her father,",
+                "Otto Frank.",
+                "",
+                "However, when Margot gets a chance to really",
+                "read the letter, she realizes it says to",
+                "report Margot to a German labor camp.",
+                "",
+                "It is up to Anne, her family, and some friends",
+                "to escape the Nazis.",
+                "",
+                "Press SPACE to continue..."
+            ];
+
+            let currentLine = 0;
+            const lineHeight = 30;
+            const startY = 150;
+
+            function drawStory() {
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#1a1a1a');
+                gradient.addColorStop(1, '#2d2416');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.font = 'bold 40px Georgia';
+                ctx.fillStyle = '#d4af37';
+                ctx.textAlign = 'center';
+                ctx.fillText("Anne Frank's Journey", canvas.width / 2, 80);
+
+                ctx.font = '20px Georgia';
+                ctx.fillStyle = '#f0e6d2';
+                ctx.textAlign = 'center';
+
+                for (let i = 0; i <= currentLine && i < storyText.length; i++) {
+                    ctx.fillText(storyText[i], canvas.width / 2, startY + (i * lineHeight));
+                }
+
+                if (currentLine < storyText.length - 1) {
+                    currentLine++;
+                    setTimeout(drawStory, 100);
+                } else {
+                    gameState.showingText = true;
+                }
+            }
+
+            drawStory();
+        }
+
+        // ============================================
+        // LEVEL 2: COLLECT ITEMS (WITH REAL IMAGES)
+        // ============================================
+        function runLevel2() {
+            gameState.level2State.viewMode = 'room';
+            gameState.inventory = [];
+            gameState.itemsFound = 0;
+
+            function drawLevel2() {
+            	if (currentLevel !== 1) return;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (gameState.level2State.viewMode === 'room') {
+                    drawAnneRoomWithImage();
+                } else if (gameState.level2State.viewMode === 'closet') {
+                    drawClosetViewWithImage();
+                } else if (gameState.level2State.viewMode === 'underBed') {
+                    drawUnderBedViewWithImage();
+                } else if (gameState.level2State.viewMode === 'drawer') {
+                    drawDrawerViewWithImage();
+                }
+
+                drawInventoryUI();
+
+                if (!gameState.showingText && gameState.itemsFound >= gameState.totalItems) {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                    ctx.fillRect(250, 20, 700, 70);
+                    ctx.font = 'bold 28px Georgia';
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('All items collected! Press SPACE to continue...', canvas.width / 2, 65);
+                }
+
+                requestAnimationFrame(drawLevel2);
+            }
+
+            drawLevel2();
+        }
+
+        function drawAnneRoomWithImage() {
+            // Draw the actual room image as background
+            if (images.anneRoom) {
+                ctx.drawImage(images.anneRoom, 0, 0, canvas.width, canvas.height);
+            } else {
+                // Fallback if image didn't load
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#4a3f35');
+                gradient.addColorStop(1, '#3d3226');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Add dark overlay for better contrast
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Define hotspots based on the actual room layout
+            const hotspots = [
+                { x: 750, y: 600, w: 350, h: 150, label: 'Search Under Bed', action: 'underBed', solved: gameState.level2State.challengeSolved.underBed },
+                { x: 50, y: 150, w: 200, h: 400, label: 'Open Closet', action: 'closet', solved: gameState.level2State.challengeSolved.closet },
+                { x: 100, y: 400, w: 250, h: 150, label: 'Check Drawer', action: 'drawer', solved: gameState.level2State.challengeSolved.drawer }
+            ];
+
+            gameState.level2State.hotspots = hotspots;
+
+            hotspots.forEach(spot => {
+                if (!spot.solved) {
+                    // Animated glowing effect
+                    const time = Date.now() / 1000;
+                    const pulse = Math.sin(time * 3) * 0.4 + 0.6;
+
+                    // Glow
+                    ctx.shadowColor = `rgba(212, 175, 55, ${pulse})`;
+                    ctx.shadowBlur = 25;
+                    ctx.strokeStyle = `rgba(212, 175, 55, ${pulse})`;
+                    ctx.lineWidth = 5;
+                    ctx.setLineDash([15, 10]);
+                    ctx.strokeRect(spot.x, spot.y, spot.w, spot.h);
+                    ctx.setLineDash([]);
+                    ctx.shadowBlur = 0;
+
+                    // Label with styled background
+                    const labelWidth = 220;
+                    const labelHeight = 40;
+                    const labelX = spot.x + spot.w/2 - labelWidth/2;
+                    const labelY = spot.y - 50;
+
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                    ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
+                    ctx.strokeStyle = '#d4af37';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(labelX, labelY, labelWidth, labelHeight);
+
+                    ctx.font = 'bold 18px Georgia';
+                    ctx.fillStyle = '#d4af37';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(spot.label, spot.x + spot.w / 2, labelY + 27);
+                } else {
+                    // Large checkmark for solved areas
+                    ctx.font = 'bold 48px Georgia';
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.strokeStyle = '#2d5f2d';
+                    ctx.lineWidth = 3;
+                    ctx.textAlign = 'center';
+                    const checkX = spot.x + spot.w / 2;
+                    const checkY = spot.y + spot.h / 2;
+                    ctx.strokeText('✓', checkX, checkY);
+                    ctx.fillText('✓', checkX, checkY);
+                }
+            });
+
+            // Title bar
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(0, 0, canvas.width, 110);
+
+            ctx.font = 'bold 32px Georgia';
+            ctx.fillStyle = '#d4af37';
+            ctx.textAlign = 'center';
+            ctx.fillText("Anne's Room - July 1942", canvas.width / 2, 40);
+
+            ctx.font = '20px Georgia';
+            ctx.fillStyle = '#f0e6d2';
+            ctx.fillText('Solve challenges to collect essential items for hiding', canvas.width / 2, 75);
+            ctx.fillText('Click on glowing areas to begin', canvas.width / 2, 100);
+        }
+
+        function drawClosetViewWithImage() {
+            if (images.closet) {
+                ctx.drawImage(images.closet, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#2a2216';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Dark overlay
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Instructions banner
+            if (!gameState.level2State.challengeSolved.closet) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+                ctx.fillRect(150, 200, 900, 130);
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(150, 200, 900, 130);
+
+                ctx.font = 'bold 28px Georgia';
+                ctx.fillStyle = '#d4af37';
+                ctx.textAlign = 'center';
+                ctx.fillText('Question Challenge', canvas.width / 2, 250);
+
+                ctx.font = '20px Georgia';
+                ctx.fillStyle = '#f0e6d2';
+                ctx.fillText('Answer correctly to collect winter clothing for the family', canvas.width / 2, 290);
+                ctx.fillText('Click anywhere to begin the challenge', canvas.width / 2, 318);
+            } else {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+                ctx.fillRect(300, 200, 600, 80);
+                ctx.strokeStyle = '#4CAF50';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(300, 200, 600, 80);
+
+                ctx.font = 'bold 32px Georgia';
+                ctx.fillStyle = '#4CAF50';
+                ctx.textAlign = 'center';
+                ctx.fillText('✓ Winter clothing collected!', canvas.width / 2, 250);
+            }
+
+            drawBackButton();
+        }
+
+        function drawUnderBedViewWithImage() {
+            if (images.underBed) {
+                ctx.drawImage(images.underBed, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#1a1510';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Dark overlay for atmosphere
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (!gameState.level2State.challengeSolved.underBed) {
+                // Highlight the items area
+                const time = Date.now() / 1000;
+                const pulse = Math.sin(time * 3) * 0.3 + 0.7;
+
+                ctx.shadowColor = `rgba(76, 175, 80, ${pulse})`;
+                ctx.shadowBlur = 30;
+                ctx.strokeStyle = `rgba(76, 175, 80, ${pulse})`;
+                ctx.lineWidth = 8;
+                ctx.setLineDash([20, 10]);
+                ctx.strokeRect(200, 250, 800, 350);
+                ctx.setLineDash([]);
+                ctx.shadowBlur = 0;
+
+                // Instructions
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+                ctx.fillRect(150, 200, 900, 130);
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(150, 200, 900, 130);
+
+                ctx.font = 'bold 28px Georgia';
+                ctx.fillStyle = '#d4af37';
+                ctx.textAlign = 'center';
+                ctx.fillText('Question Challenge', canvas.width / 2, 250);
+
+                ctx.font = '20px Georgia';
+                ctx.fillStyle = '#f0e6d2';
+                ctx.fillText('Test your knowledge about Anne Frank\'s diary', canvas.width / 2, 290);
+                ctx.fillText('Click anywhere to begin', canvas.width / 2, 318);
+            } else {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+                ctx.fillRect(250, 300, 700, 200);
+                ctx.strokeStyle = '#4CAF50';
+                ctx.lineWidth = 5;
+                ctx.strokeRect(250, 300, 700, 200);
+
+                ctx.font = 'bold 38px Georgia';
+                ctx.fillStyle = '#4CAF50';
+                ctx.textAlign = 'center';
+                ctx.fillText('✓ All items retrieved!', canvas.width / 2, 380);
+
+                ctx.font = '22px Georgia';
+                ctx.fillStyle = '#f0e6d2';
+                ctx.fillText('Diary, books, handkerchiefs, and curlers collected', canvas.width / 2, 430);
+            }
+
+            drawBackButton();
+        }
+
+        function drawDrawerViewWithImage() {
+            if (images.drawer) {
+                ctx.drawImage(images.drawer, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#3a2a1a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Subtle overlay
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (!gameState.level2State.challengeSolved.drawer) {
+                // Highlight a specific area (don't reveal what it is!)
+                const time = Date.now() / 1000;
+                const pulse = Math.sin(time * 4) * 0.4 + 0.6;
+
+                ctx.shadowColor = `rgba(212, 175, 55, ${pulse})`;
+                ctx.shadowBlur = 25;
+                ctx.strokeStyle = `rgba(212, 175, 55, ${pulse})`;
+                ctx.lineWidth = 6;
+                ctx.setLineDash([12, 8]);
+                ctx.strokeRect(350, 250, 500, 350);
+                ctx.setLineDash([]);
+                ctx.shadowBlur = 0;
+
+                // Instructions
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+                ctx.fillRect(200, 200, 800, 130);
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(200, 200, 800, 130);
+
+                ctx.font = 'bold 28px Georgia';
+                ctx.fillStyle = '#d4af37';
+                ctx.textAlign = 'center';
+                ctx.fillText('Memory Matching Challenge', canvas.width / 2, 250);
+
+                ctx.font = '20px Georgia';
+                ctx.fillStyle = '#f0e6d2';
+                ctx.fillText('Find a precious writing tool hidden among desk items', canvas.width / 2, 290);
+                ctx.fillText('Click anywhere to begin', canvas.width / 2, 318);
+            } else {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+                ctx.fillRect(300, 350, 600, 120);
+                ctx.strokeStyle = '#4CAF50';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(300, 350, 600, 120);
+
+                ctx.font = 'bold 36px Georgia';
+                ctx.fillStyle = '#4CAF50';
+                ctx.textAlign = 'center';
+                ctx.fillText('✓ Writing tool collected!', canvas.width / 2, 420);
+            }
+
+            drawBackButton();
+        }
+
+        function drawBackButton() {
+            ctx.fillStyle = '#d4af37';
+            ctx.fillRect(30, 30, 150, 55);
+            ctx.strokeStyle = '#b8942f';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(30, 30, 150, 55);
+
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 5;
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = 'bold 22px Georgia';
+            ctx.textAlign = 'center';
+            ctx.fillText('< Back', 105, 65);
+            ctx.shadowBlur = 0;
+        }
+
+        function drawInventoryUI() {
+            // Enhanced inventory panel
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+            ctx.fillRect(20, canvas.height - 160, 450, 150);
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(20, canvas.height - 160, 450, 150);
+
+            ctx.font = 'bold 24px Georgia';
+            ctx.fillStyle = '#d4af37';
+            ctx.textAlign = 'left';
+            ctx.fillText('🎒 Packed Items', 35, canvas.height - 125);
+
+            // Progress bar
+            const progress = gameState.itemsFound / gameState.totalItems;
+            ctx.fillStyle = '#3a3a3a';
+            ctx.fillRect(35, canvas.height - 95, 400, 30);
+
+            const progressGradient = ctx.createLinearGradient(35, 0, 435, 0);
+            progressGradient.addColorStop(0, '#4CAF50');
+            progressGradient.addColorStop(1, '#66BB6A');
+            ctx.fillStyle = progressGradient;
+            ctx.fillRect(35, canvas.height - 95, 400 * progress, 30);
+
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(35, canvas.height - 95, 400, 30);
+
+            ctx.font = 'bold 18px Georgia';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = 3;
+            ctx.fillText(`${gameState.itemsFound} / ${gameState.totalItems} Items Collected`, 235, canvas.height - 72);
+            ctx.shadowBlur = 0;
+
+            // Item list
+            ctx.font = '16px Georgia';
+            ctx.fillStyle = '#f0e6d2';
+            ctx.textAlign = 'left';
+
+            const recentItems = gameState.inventory.slice(-2);
+            recentItems.forEach((item, index) => {
+                ctx.fillText(`✓ ${item}`, 35, canvas.height - 40 + (index * 22));
+            });
+
+            if (gameState.inventory.length > 2) {
+                ctx.fillStyle = '#b8b8b8';
+                ctx.font = '14px Georgia';
+                ctx.fillText(`... and ${gameState.inventory.length - 2} more items`, 35, canvas.height - 40 + (2 * 22));
+            }
+        }
+
+        // ============================================
+        // LEVEL 3: PAC-MAN STYLE MAZE
+        // ============================================
+
+        // Grid configuration for PAC-MAN level
+        const GRID_SIZE = 30;
+        const MAZE_COLS = 40;
+        const MAZE_ROWS = 26;
+
+        function generateMaze() {
+            // Create maze layout: 0 = path, 1 = wall, 2 = collectible, 3 = goal
+            const maze = [];
+
+            // Initialize all as walls
+            for (let y = 0; y < MAZE_ROWS; y++) {
+                maze[y] = [];
+                for (let x = 0; x < MAZE_COLS; x++) {
+                    maze[y][x] = 1;
+                }
+            }
+
+            // Create paths (Amsterdam street layout inspired)
+            // Horizontal streets
+            for (let x = 0; x < MAZE_COLS; x++) {
+                maze[1][x] = 0;
+                maze[5][x] = 0;
+                maze[9][x] = 0;
+                maze[13][x] = 0;
+                maze[17][x] = 0;
+                maze[21][x] = 0;
+                maze[24][x] = 0;
+            }
+
+            // Vertical alleys
+            for (let y = 0; y < MAZE_ROWS; y++) {
+                maze[y][1] = 0;
+                maze[y][5] = 0;
+                maze[y][10] = 0;
+                maze[y][15] = 0;
+                maze[y][20] = 0;
+                maze[y][25] = 0;
+                maze[y][30] = 0;
+                maze[y][35] = 0;
+                maze[y][38] = 0;
+            }
+
+            // Add some additional connecting paths
+            for (let x = 1; x < MAZE_COLS - 1; x++) {
+                if (x % 4 === 0) {
+                    for (let y = 1; y < MAZE_ROWS - 1; y++) {
+                        if (y % 3 === 0) {
+                            maze[y][x] = 0;
+                        }
+                    }
+                }
+            }
+
+            // Place collectibles on paths
+            let collectibleCount = 0;
+            for (let y = 0; y < MAZE_ROWS; y++) {
+                for (let x = 0; x < MAZE_COLS; x++) {
+                    if (maze[y][x] === 0 && Math.random() < 0.3) {
+                        maze[y][x] = 2;
+                        collectibleCount++;
+                    }
+                }
+            }
+
+            // Set starting position
+            maze[1][1] = 0;
+
+            // Set goal position (Secret Annex entrance) and clear area around it
+            maze[24][38] = 3;
+            for (let x = 35; x < 39; x++) {
+                maze[24][x] = 0;
+            }
+            for (let y = 22; y < 25; y++) {
+                maze[y][38] = 0;
+            }
+            maze[24][38] = 3; // Restore goal
+
+            return { maze, collectibleCount };
+        }
+
+        function createEnemies() {
+            return [
+                {
+                    gridX: 20,
+                    gridY: 5,
+                    targetGridX: 20,
+                    targetGridY: 5,
+                    speed: 0.08,
+                    moving: false,
+                    type: 'chaser',
+                    color: '#8B0000',
+                    glowLevel: 0
+                },
+                {
+                    gridX: 15,
+                    gridY: 13,
+                    targetGridX: 15,
+                    targetGridY: 13,
+                    speed: 0.08,
+                    moving: false,
+                    type: 'ambusher',
+                    color: '#B22222',
+                    glowLevel: 0
+                },
+                {
+                    gridX: 10,
+                    gridY: 21,
+                    targetGridX: 10,
+                    targetGridY: 21,
+                    speed: 0.08,
+                    moving: false,
+                    type: 'patroller',
+                    //color: '#DC143C',
+                    color: 'rgba(255, 140, 0, 0.9)',
+                    patrolPoints: [[10, 21], [30, 21], [30, 9], [10, 9]],
+                    patrolIndex: 0,
+                    glowLevel: 0
+                },
+                {
+                    gridX: 25,
+                    gridY: 17,
+                    targetGridX: 25,
+                    targetGridY: 17,
+                    speed: 0.08,
+                    moving: false,
+                    type: 'random',
+                    //color: '#CD5C5C',
+                    color: 'rgba(255, 215, 0, 0.8)',
+                    glowLevel: 0
+                }
+            ];
+        }
+
+        function runLevel3() {
+            const { maze, collectibleCount } = generateMaze();
+			currentLevel = 2;
+            // Initialize level 3 state
+            if (!gameState.level3State.maze) {
+                gameState.level3State.maze = [];
+            }
+            gameState.level3State.maze = maze;
+            gameState.level3State.totalMazeItems = collectibleCount;
+            gameState.level3State.itemsCollected = 0;
+            gameState.level3State.lives = 3;
+            gameState.level3State.score = 0;
+            gameState.level3State.goalReached = false;
+            gameState.level3State.enemies = createEnemies();
+
+            // Set player to grid position
+            gameState.player.gridX = 1;
+            gameState.player.gridY = 1;
+            gameState.player.targetGridX = 1;
+            gameState.player.targetGridY = 1;
+            gameState.player.moving = false;
+
+			let level3StartTime = null;
+			let lastSpeedIncreaseTime = 0;
+
+			level3StartTime = performance.now();
+			lastSpeedIncreaseTime = 0;
+
+            let lastEnemyUpdate = Date.now();
+
+            function drawLevel3() {
+            	if (currentLevel !== 2) return;
+                // Check for game over or win FIRST before drawing anything
+                if (gameState.level3State.lives <= 0) {
+                    console.log('Drawing game over screen');
+                    drawGameOver();
+                    return;
+                }
+
+                if (gameState.level3State.goalReached) {
+                    console.log('Drawing level complete screen - goalReached is TRUE');
+                    drawLevelComplete();
+                    return;
+                }
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+				const now = performance.now();
+    			const elapsed = (now - level3StartTime) / 1000; // seconds
+                // Draw background
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#2a2216');
+                gradient.addColorStop(1, '#1a1510');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw maze
+                drawMaze();
+
+                // Update and draw enemies
+                const now2 = Date.now();
+                if (now2 - lastEnemyUpdate > 100) {
+                    updateEnemies();
+                    lastEnemyUpdate = now2;
+                }
+				if (elapsed - lastSpeedIncreaseTime >= 10) {
+					gameState.level3State.enemies.forEach(enemy => {
+						enemy.speed = Math.min(enemy.speed + 0.03, 0.35);
+						enemy.glowLevel += 1;
+					});
+
+					lastSpeedIncreaseTime += 10;
+
+					console.log('Enemy speed increased to:', gameState.level3State.enemies[0].speed);
+    			}
+    			drawEnemies();
+
+                // Update and draw player
+                updatePlayerPosition();
+                drawPlayer();
+
+                // Draw HUD
+                drawLevel3HUD();
+
+                // Check collisions
+                checkEnemyCollision();
+                checkGoalReached();
+
+                requestAnimationFrame(drawLevel3);
+            }
+
+            drawLevel3();
+        }
+
+        function drawMaze() {
+            const maze = gameState.level3State.maze;
+
+            for (let y = 0; y < MAZE_ROWS; y++) {
+                for (let x = 0; x < MAZE_COLS; x++) {
+                    const screenX = x * GRID_SIZE;
+                    const screenY = y * GRID_SIZE + 80; // Offset for HUD
+
+                    if (maze[y][x] === 1) {
+                        // Wall
+                        ctx.fillStyle = '#3d3226';
+                        ctx.fillRect(screenX, screenY, GRID_SIZE, GRID_SIZE);
+                        ctx.strokeStyle = '#2a2216';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(screenX, screenY, GRID_SIZE, GRID_SIZE);
+                    } else if (maze[y][x] === 2) {
+                        // Collectible (supply item)
+                        ctx.fillStyle = '#1a1510';
+                        ctx.fillRect(screenX, screenY, GRID_SIZE, GRID_SIZE);
+
+                        ctx.fillStyle = '#d4af37';
+                        ctx.beginPath();
+                        ctx.arc(screenX + GRID_SIZE / 2, screenY + GRID_SIZE / 2, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (maze[y][x] === 3) {
+                        // Goal (Secret Annex entrance)
+                        ctx.fillStyle = '#1a1510';
+                        ctx.fillRect(screenX, screenY, GRID_SIZE, GRID_SIZE);
+
+                        const time = Date.now() / 1000;
+                        const pulse = Math.sin(time * 3) * 0.3 + 0.7;
+
+                        ctx.shadowColor = `rgba(76, 175, 80, ${pulse})`;
+                        ctx.shadowBlur = 20;
+                        ctx.fillStyle = `rgba(76, 175, 80, ${pulse})`;
+                        ctx.fillRect(screenX, screenY, GRID_SIZE, GRID_SIZE);
+                        ctx.shadowBlur = 0;
+
+                        ctx.strokeStyle = '#FFD700';
+                        ctx.lineWidth = 4;
+                        ctx.strokeRect(screenX + 1, screenY + 1, GRID_SIZE - 2, GRID_SIZE - 2);
+
+                        ctx.fillStyle = '#FFD700';
+                        ctx.font = 'bold 28px Georgia';
+                        ctx.textAlign = 'center';
+                        ctx.shadowColor = 'rgba(0, 0, 0, 1)';
+                        ctx.shadowBlur = 5;
+                        ctx.fillText('🚪', screenX + GRID_SIZE / 2, screenY + GRID_SIZE / 2 + 10);
+                        ctx.shadowBlur = 0;
+                    } else {
+                        // Path
+                        ctx.fillStyle = '#1a1510';
+                        ctx.fillRect(screenX, screenY, GRID_SIZE, GRID_SIZE);
+                    }
+                }
+            }
+        }
+
+        function drawPlayer() {
+            const screenX = gameState.player.gridX * GRID_SIZE;
+            const screenY = gameState.player.gridY * GRID_SIZE + 80;
+
+            if (images.anneCharacter) {
+                const scale = 0.05;
+                const charWidth = images.anneCharacter.width * scale;
+                const charHeight = images.anneCharacter.height * scale;
+                ctx.drawImage(images.anneCharacter,
+                    screenX + (GRID_SIZE - charWidth) / 2,
+                    screenY + (GRID_SIZE - charHeight) / 2,
+                    charWidth, charHeight);
+            } else {
+                ctx.fillStyle = '#6b8e9c';
+                ctx.beginPath();
+                ctx.arc(screenX + GRID_SIZE / 2, screenY + GRID_SIZE / 2, GRID_SIZE / 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawEnemies() {
+            gameState.level3State.enemies.forEach(enemy => {
+                const screenX = enemy.gridX * GRID_SIZE;
+                const screenY = enemy.gridY * GRID_SIZE + 80;
+
+                ctx.fillStyle = enemy.color;
+                ctx.beginPath();
+                ctx.arc(screenX + GRID_SIZE / 2, screenY + GRID_SIZE / 2, GRID_SIZE / 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(screenX + GRID_SIZE / 4, screenY + GRID_SIZE / 4, GRID_SIZE / 2, 5);
+            });
+        }
+
+        function drawLevel3HUD() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(0, 0, canvas.width, 75);
+
+            ctx.font = 'bold 24px Georgia';
+            ctx.fillStyle = '#d4af37';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Lives: ${'❤️'.repeat(gameState.level3State.lives)}`, 20, 30);
+            ctx.fillText(`Score: ${gameState.level3State.score}`, 20, 60);
+
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#f0e6d2';
+            ctx.font = '20px Georgia';
+
+            const itemsNeeded = Math.ceil(gameState.level3State.totalMazeItems * 0.67);
+            const percentage = Math.round((gameState.level3State.itemsCollected / gameState.level3State.totalMazeItems) * 100);
+            const hasEnoughItems = gameState.level3State.itemsCollected >= itemsNeeded;
+
+            if (hasEnoughItems) {
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillText(`✓ Items: ${gameState.level3State.itemsCollected}/${gameState.level3State.totalMazeItems} (${percentage}%) - Ready to enter!`, canvas.width / 2, 35);
+            } else {
+                ctx.fillText(`Items: ${gameState.level3State.itemsCollected}/${gameState.level3State.totalMazeItems} (${percentage}%) - Need ${itemsNeeded} (67%)`, canvas.width / 2, 35);
+            }
+
+            ctx.fillStyle = '#f0e6d2';
+            ctx.font = '18px Georgia';
+            ctx.fillText('Collect supplies before entering the Secret Annex!', canvas.width / 2, 60);
+
+            // Draw arrow if enough items collected
+            if (hasEnoughItems) {
+                drawGoalArrow();
+            }
+        }
+
+        function drawGoalArrow() {
+            const goalScreenX = 38 * GRID_SIZE + GRID_SIZE / 2;
+            const goalScreenY = 24 * GRID_SIZE + 80;
+
+            const arrowX = goalScreenX;
+            const arrowY = goalScreenY - 80;
+
+            const time = Date.now() / 1000;
+            const pulse = Math.sin(time * 4) * 0.3 + 0.7;
+            const bounce = Math.sin(time * 3) * 10;
+
+            ctx.save();
+
+            ctx.font = 'bold 18px Georgia';
+            ctx.fillStyle = `rgba(255, 215, 0, ${pulse})`;
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+            ctx.shadowBlur = 8;
+            ctx.fillText('ENTER HERE!', arrowX, arrowY - 20 + bounce);
+
+            ctx.strokeStyle = `rgba(255, 215, 0, ${pulse})`;
+            ctx.fillStyle = `rgba(255, 215, 0, ${pulse})`;
+            ctx.lineWidth = 6;
+            ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+            ctx.shadowBlur = 20;
+
+            ctx.beginPath();
+            ctx.moveTo(arrowX, arrowY + bounce);
+            ctx.lineTo(arrowX, arrowY + 50 + bounce);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(arrowX, arrowY + 50 + bounce);
+            ctx.lineTo(arrowX - 15, arrowY + 35 + bounce);
+            ctx.lineTo(arrowX + 15, arrowY + 35 + bounce);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function handleGridMovement(key) {
+            if (gameState.player.moving) return;
+
+            let newX = gameState.player.gridX;
+            let newY = gameState.player.gridY;
+
+            if (key === 'ArrowLeft') newX--;
+            else if (key === 'ArrowRight') newX++;
+            else if (key === 'ArrowUp') newY--;
+            else if (key === 'ArrowDown') newY++;
+            else return;
+
+            if (newX < 0 || newX >= MAZE_COLS || newY < 0 || newY >= MAZE_ROWS) return;
+
+            if (gameState.level3State.maze[newY][newX] !== 1) {
+                gameState.player.targetGridX = newX;
+                gameState.player.targetGridY = newY;
+                gameState.player.moving = true;
+            }
+        }
+
+        function updatePlayerPosition() {
+            if (!gameState.player.moving) return;
+
+            const speed = 0.2;
+
+            if (gameState.player.gridX < gameState.player.targetGridX) {
+                gameState.player.gridX += speed;
+                if (gameState.player.gridX >= gameState.player.targetGridX) {
+                    gameState.player.gridX = gameState.player.targetGridX;
+                    gameState.player.moving = false;
+                    checkTilePickup();
+                }
+            } else if (gameState.player.gridX > gameState.player.targetGridX) {
+                gameState.player.gridX -= speed;
+                if (gameState.player.gridX <= gameState.player.targetGridX) {
+                    gameState.player.gridX = gameState.player.targetGridX;
+                    gameState.player.moving = false;
+                    checkTilePickup();
+                }
+            } else if (gameState.player.gridY < gameState.player.targetGridY) {
+                gameState.player.gridY += speed;
+                if (gameState.player.gridY >= gameState.player.targetGridY) {
+                    gameState.player.gridY = gameState.player.targetGridY;
+                    gameState.player.moving = false;
+                    checkTilePickup();
+                }
+            } else if (gameState.player.gridY > gameState.player.targetGridY) {
+                gameState.player.gridY -= speed;
+                if (gameState.player.gridY <= gameState.player.targetGridY) {
+                    gameState.player.gridY = gameState.player.targetGridY;
+                    gameState.player.moving = false;
+                    checkTilePickup();
+                }
+            }
+        }
+
+        function checkTilePickup() {
+            const x = Math.round(gameState.player.gridX);
+            const y = Math.round(gameState.player.gridY);
+
+            if (gameState.level3State.maze[y][x] === 2) {
+                gameState.level3State.maze[y][x] = 0;
+                gameState.level3State.itemsCollected++;
+                gameState.level3State.score += 10;
+            }
+        }
+
+        function updateEnemies() {
+            gameState.level3State.enemies.forEach(enemy => {
+                if (!enemy.moving) {
+                    let targetX, targetY;
+
+                    if (enemy.type === 'chaser') {
+                        targetX = Math.round(gameState.player.gridX);
+                        targetY = Math.round(gameState.player.gridY);
+                    } else if (enemy.type === 'ambusher') {
+                        const dx = gameState.player.gridX - enemy.gridX;
+                        const dy = gameState.player.gridY - enemy.gridY;
+                        targetX = Math.round(gameState.player.gridX + dx);
+                        targetY = Math.round(gameState.player.gridY + dy);
+                    } else if (enemy.type === 'patroller') {
+                        const nextPoint = enemy.patrolPoints[enemy.patrolIndex];
+                        targetX = nextPoint[0];
+                        targetY = nextPoint[1];
+
+                        if (Math.abs(enemy.gridX - targetX) < 0.5 && Math.abs(enemy.gridY - targetY) < 0.5) {
+                            enemy.patrolIndex = (enemy.patrolIndex + 1) % enemy.patrolPoints.length;
+                        }
+                    } else {
+                        const directions = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+                        const randomDir = directions[Math.floor(Math.random() * directions.length)];
+                        targetX = Math.round(enemy.gridX) + randomDir[0];
+                        targetY = Math.round(enemy.gridY) + randomDir[1];
+                    }
+
+                    const nextPos = getNextMoveTowards(enemy.gridX, enemy.gridY, targetX, targetY);
+
+                    if (nextPos) {
+                        enemy.targetGridX = nextPos.x;
+                        enemy.targetGridY = nextPos.y;
+                        enemy.moving = true;
+                    }
+                }
+
+                if (enemy.moving) {
+                    const dx = enemy.targetGridX - enemy.gridX;
+                    const dy = enemy.targetGridY - enemy.gridY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 0.1) {
+                        enemy.gridX = enemy.targetGridX;
+                        enemy.gridY = enemy.targetGridY;
+                        enemy.moving = false;
+                    } else {
+                        enemy.gridX += (dx / distance) * enemy.speed;
+                        enemy.gridY += (dy / distance) * enemy.speed;
+                    }
+                }
+            });
+        }
+
+        function getNextMoveTowards(fromX, fromY, toX, toY) {
+            fromX = Math.round(fromX);
+            fromY = Math.round(fromY);
+
+            const directions = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+
+            let bestMove = null;
+            let bestDistance = Infinity;
+
+            directions.forEach(([dx, dy]) => {
+                const newX = fromX + dx;
+                const newY = fromY + dy;
+
+                if (newX >= 0 && newX < MAZE_COLS && newY >= 0 && newY < MAZE_ROWS) {
+                    if (gameState.level3State.maze[newY][newX] !== 1) {
+                        const distance = Math.abs(newX - toX) + Math.abs(newY - toY);
+                        if (distance < bestDistance) {
+                            bestDistance = distance;
+                            bestMove = { x: newX, y: newY };
+                        }
+                    }
+                }
+            });
+
+            return bestMove;
+        }
+
+        function checkEnemyCollision() {
+            const playerX = gameState.player.gridX;
+            const playerY = gameState.player.gridY;
+
+            for (let enemy of gameState.level3State.enemies) {
+                const dx = playerX - enemy.gridX;
+                const dy = playerY - enemy.gridY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 0.6) {
+                    gameState.level3State.lives--;
+                    gameState.level3State.score = Math.max(0, gameState.level3State.score - 50);
+
+                    gameState.player.gridX = 1;
+                    gameState.player.gridY = 1;
+                    gameState.player.targetGridX = 1;
+                    gameState.player.targetGridY = 1;
+                    gameState.player.moving = false;
+                    break;
+                }
+            }
+        }
+
+        function checkGoalReached() {
+            const playerX = Math.round(gameState.player.gridX);
+            const playerY = Math.round(gameState.player.gridY);
+
+            if (playerY < 0 || playerY >= MAZE_ROWS || playerX < 0 || playerX >= MAZE_COLS) {
+                return;
+            }
+
+            const itemsNeeded = Math.ceil(gameState.level3State.totalMazeItems * 0.67);
+            const hasEnoughItems = gameState.level3State.itemsCollected >= itemsNeeded;
+
+            if (gameState.level3State.maze[playerY][playerX] === 3 && hasEnoughItems) {
+                console.log('GOAL REACHED! Setting goalReached to true');
+                console.log('Current level:', currentLevel);
+                console.log('Items collected:', gameState.level3State.itemsCollected, '/', gameState.level3State.totalMazeItems);
+                gameState.level3State.goalReached = true;
+                gameState.level3State.score += 500;
+            }
+        }
+
+        function drawGameOver() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(200, 250, 800, 250);
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(200, 250, 800, 250);
+
+            ctx.font = 'bold 48px Georgia';
+            ctx.fillStyle = '#ff6b6b';
+            ctx.textAlign = 'center';
+            ctx.fillText('Captured!', canvas.width / 2, 340);
+
+            ctx.font = '24px Georgia';
+            ctx.fillStyle = '#f0e6d2';
+            ctx.fillText('The family was discovered by patrols', canvas.width / 2, 390);
+            ctx.fillText(`Final Score: ${gameState.level3State.score}`, canvas.width / 2, 430);
+            ctx.fillText('Press SPACE to try again', canvas.width / 2, 470);
+
+            gameState.showingText = true;
+        }
+
+		function drawLevelComplete() {
+			// Clear frame
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+			// Show the Annex entrance image instead of any other picture
+			if (images.door) {
+				ctx.drawImage(images.door, 0, 0, canvas.width, canvas.height);
+			} else {
+				ctx.fillStyle = '#3d3226';
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+			}
+
+			// Slight dark overlay for readability
+			ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+			// Message box
+			ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+			ctx.fillRect(200, 250, 800, 250);
+			ctx.strokeStyle = '#4CAF50';
+			ctx.lineWidth = 5;
+			ctx.strokeRect(200, 250, 800, 250);
+
+			ctx.font = 'bold 46px Georgia';
+			ctx.fillStyle = '#d4af37';
+			ctx.textAlign = 'center';
+			ctx.fillText('Level 3 Complete!', canvas.width / 2, 340);
+
+			ctx.font = '24px Georgia';
+			ctx.fillStyle = '#f0e6d2';
+			ctx.fillText(`Score: ${gameState.level3State.score}`, canvas.width / 2, 395);
+			ctx.fillStyle = '#4CAF50';
+			ctx.fillText('Press SPACE to enter the Secret Annex...', canvas.width / 2, 445);
+
+			// This is important so SPACE works (your handleSpacePress checks this)
+			gameState.showingText = true;
+		}
+        // ============================================
+        // LEVEL 3: STEALTH LEVEL (WITH STREET IMAGE) - OLD VERSION
+        // ============================================
+        // LEVEL 4: SECRET ANNEX (WITH REAL IMAGES)
+        // ============================================
+        function runLevel4() {
+            gameState.level4State.currentRoom = 'entrance';
+            gameState.level4State.bookcaseRevealed = false;
+
+            function drawLevel4() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (gameState.level4State.currentRoom === 'entrance') {
+                    drawEntranceWithImage();
+                } else if (gameState.level4State.currentRoom === 'office') {
+                    drawOfficeWithImage();
+                } else if (gameState.level4State.currentRoom === 'annesRoom') {
+                    drawAnnesRoomFinal();
+                }
+
+                requestAnimationFrame(drawLevel4);
+            }
+
+            drawLevel4();
+        }
+
+        function drawEntranceWithImage() {
+            if (images.door) {
+                ctx.drawImage(images.door, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#3d3226';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Pulsing effect on door area
+            const time = Date.now() / 1000;
+            const pulse = Math.sin(time * 2) * 0.3 + 0.7;
+
+            ctx.fillStyle = `rgba(212, 175, 55, ${pulse * 0.2})`;
+            ctx.fillRect(canvas.width / 2 - 200, 100, 400, 500);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(200, 650, 800, 100);
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(200, 650, 800, 100);
+
+            ctx.font = 'bold 32px Georgia';
+            ctx.fillStyle = '#d4af37';
+            ctx.textAlign = 'center';
+            ctx.fillText('263 Prinsengracht - Otto Frank\'s Office', canvas.width / 2, 700);
+
+            ctx.font = 'bold 24px Georgia';
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillText('Press SPACE to enter', canvas.width / 2, 735);
+        }
+
+        function drawOfficeWithImage() {
+            if (images.office) {
+                ctx.drawImage(images.office, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#2a2216';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Highlight bookcase area
+            const bookcaseX = 450;
+            const bookcaseY = 100;
+            const bookcaseW = 300;
+            const bookcaseH = 500;
+
+            if (!gameState.level4State.bookcaseRevealed) {
+                const time = Date.now() / 1000;
+                const pulse = Math.sin(time * 3) * 0.4 + 0.6;
+
+                ctx.shadowColor = `rgba(212, 175, 55, ${pulse})`;
+                ctx.shadowBlur = 30;
+                ctx.strokeStyle = `rgba(212, 175, 55, ${pulse})`;
+                ctx.lineWidth = 6;
+                ctx.setLineDash([15, 10]);
+                ctx.strokeRect(bookcaseX, bookcaseY, bookcaseW, bookcaseH);
+                ctx.setLineDash([]);
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+                ctx.fillRect(200, 650, 800, 100);
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(200, 650, 800, 100);
+
+                ctx.font = 'bold 28px Georgia';
+                ctx.fillStyle = '#d4af37';
+                ctx.textAlign = 'center';
+                ctx.fillText('Click the entrance and solve a puzzle to get access!', canvas.width / 2, 700);
+            } else {
+                // Show bookcase moved
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(bookcaseX + 150, bookcaseY, bookcaseW, bookcaseH);
+
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+                ctx.fillRect(200, 650, 800, 120);
+                ctx.strokeStyle = '#4CAF50';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(200, 650, 800, 120);
+
+                ctx.font = 'bold 32px Georgia';
+                ctx.fillStyle = '#4CAF50';
+                ctx.textAlign = 'center';
+                ctx.fillText('The Secret Annex entrance revealed!', canvas.width / 2, 700);
+
+                ctx.font = 'bold 24px Georgia';
+                ctx.fillStyle = '#d4af37';
+                ctx.fillText('Press SPACE to enter the hiding place', canvas.width / 2, 745);
+            }
+        }
+
+        function drawAnnesRoomFinal() {
+            // Use office image for final scene (inside the Secret Annex)
+            if (images.office) {
+                ctx.drawImage(images.office, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#3d3226';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            const gradient = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 100, canvas.width / 2, canvas.height / 2, 500);
+            gradient.addColorStop(0, 'rgba(255, 223, 186, 0.2)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.92)';
+            ctx.fillRect(150, 180, 900, 450);
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(150, 180, 900, 450);
+
+            ctx.font = 'bold 48px Georgia';
+            ctx.fillStyle = '#d4af37';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(212, 175, 55, 0.5)';
+            ctx.shadowBlur = 10;
+            ctx.fillText('You Made It!', canvas.width / 2, 265);
+            ctx.shadowBlur = 0;
+
+            ctx.font = '24px Georgia';
+            ctx.fillStyle = '#f0e6d2';
+            ctx.textAlign = 'center';
+            const finalText = [
+                'Anne, her family, and friends have successfully',
+                'reached the Secret Annex at 263 Prinsengracht.',
+                '',
+                'Here they will hide for over two years, from July 1942',
+                'until their discovery in August 1944.',
+                '',
+                'During this time, Anne will write her famous diary,',
+                'documenting life in hiding and her hopes for the future.',
+                '',
+                'Thank you for experiencing this important historical journey.'
+            ];
+
+            finalText.forEach((line, index) => {
+                ctx.fillText(line, canvas.width / 2, 320 + (index * 33));
+            });
+        }
+
+        // ============================================
+        // EVENT HANDLERS
+        // ============================================
+        function handleSpacePress() {
+            if (currentLevel === 0 && gameState.showingText) {
+                currentLevel = 1;
+                gameState.showingText = false;
+                levels[currentLevel].execute();
+            } else if (currentLevel === 1 && gameState.itemsFound >= gameState.totalItems) {
+                currentLevel = 2;
+                levels[currentLevel].execute();
+            } else if (currentLevel === 2 && gameState.showingText) {
+                // After PAC-MAN level (Level 3 in the game), go to Secret Annex (Level 4)
+                if (gameState.level3State.goalReached) {
+                    currentLevel = 3;
+                    gameState.showingText = false;
+                    levels[currentLevel].execute();
+                } else {
+                    // Restart level if game over
+                    gameState.showingText = false;
+                    runLevel3();
+                }
+            } else if (currentLevel === 3) {
+                if (gameState.level4State.currentRoom === 'entrance') {
+                    gameState.level4State.currentRoom = 'office';
+                } else if (gameState.level4State.currentRoom === 'office' && gameState.level4State.bookcaseRevealed) {
+                    gameState.level4State.currentRoom = 'annesRoom';
+                }
+            }
+        }
+
+        function handleCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (currentLevel === 1) {
+                if (gameState.level2State.viewMode === 'room') {
+                    // Check hotspots
+                    gameState.level2State.hotspots.forEach(spot => {
+                        if (x >= spot.x && x <= spot.x + spot.w &&
+                            y >= spot.y && y <= spot.y + spot.h && !spot.solved) {
+                            gameState.level2State.viewMode = spot.action;
+                            // Don't show challenge yet - wait for another click
+                        }
+                    });
+                } else if (gameState.level2State.viewMode !== 'room') {
+                    // Back button check
+                    if (x >= 30 && x <= 180 && y >= 30 && y <= 85) {
+                        gameState.level2State.viewMode = 'room';
+                    } else if (!gameState.level2State.challengeSolved[gameState.level2State.viewMode]) {
+                        // Anywhere else - show challenge
+                        showChallenge(gameState.level2State.viewMode);
+                    }
+                }
+            }
+
+            if (currentLevel === 3 && gameState.level4State.currentRoom === 'office') {
+                // Check if clicked on bookcase
+                if (x >= 450 && x <= 750 && y >= 100 && y <= 600 && !gameState.level4State.bookcaseRevealed) {
+                    showChallenge('bookcase');
+                }
+            }
+        }
+
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
